@@ -91,6 +91,10 @@ class YourApplication(QMainWindow, Ui_MainWindow):
             if self.selected_video_path and self.selected_geojson_path:
                 self.readMatchButton.setEnabled(True)
                 
+    def get_video_length(self, video_path):
+        ## Function to get the video length... TAIWOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+        pass
+                
     def create_details_table(self):
         # Create main layout
         main_layout = QHBoxLayout()
