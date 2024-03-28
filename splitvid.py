@@ -12,6 +12,7 @@ import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QWidget
 import geopandas as gpd
+from moviepy.editor import VideoFileClip
        
             
 class YourApplication(QMainWindow, Ui_MainWindow):
@@ -92,7 +93,7 @@ class YourApplication(QMainWindow, Ui_MainWindow):
                 self.readMatchButton.setEnabled(True)
                 
     def get_video_length(self, video_path):
-        ## Function to get the video length... TAIWOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+        ## Function to get the video length..
         pass
                 
     def create_details_table(self):
