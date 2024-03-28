@@ -11,6 +11,7 @@ from datetime import datetime
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QWidget
+import geopandas as gpd
        
             
 class YourApplication(QMainWindow, Ui_MainWindow):
@@ -35,14 +36,41 @@ class YourApplication(QMainWindow, Ui_MainWindow):
         self.splitFilesButton.setEnabled(False)
         self.readGeojsonButton.clicked.connect(self.select_folder)
         self.readVidsButton.clicked.connect(self.select_folder_2)
-        self.readMatchButton.clicked.connect(self.read_match_files)
+        self.readMatchButton.clicked.connect(self.create_details_table)
         
     
     def read_match_files(self):
         ###Check if video path and geojson path has been selected
-        ### Loop through the geojson folder location and create_details_tables
+        ### Loop through the geojson folder location and create_details_tables based on it
+        ###Populate the scrollArea
+        if self.selected_geojson_path and self.selected_video_path:
+            for filename in os.listdir(self.selected_geojson_path):
+                if filename.endswith('.geojson'):
+                    file_path = os.path.join(self.selected_geojson_path, filename)
+                    length= self.get_length_in_meters(file_path)
+                    print(length)
+        else:
+            self.show_message_box('Unable to Process data', "Make sure the geojson folder path and the video folder path are selected first")
         
         
+    def get_length_in_meters(self, filepath):
+        gdf= gpd.read_file(filepath)
+        if not gdf.empty and ('LineString' in gdf.geom_type.unique() or 'MultiLineString' in gdf.geom_type.unique()):
+            # Set CRS to WGS84 if not already set
+            if gdf.crs is None:
+                gdf.crs = 'epsg:4326'  # WGS84
+
+            # Reproject CRS to EPSG 32361
+            gdf = gdf.to_crs(epsg=32631)
+
+            # Calculate the length of all LineString and MultiLineString geometries and sum them up
+            total_length = gdf.geometry.length.sum()
+
+            return total_length
+
+        
+        
+    
     ## Def functions
     def select_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Directory")
