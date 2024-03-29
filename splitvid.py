@@ -13,6 +13,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QWidget
 import geopandas as gpd
 from moviepy.editor import VideoFileClip
+import geopandas as gpd
+import folium
        
             
 class YourApplication(QMainWindow, Ui_MainWindow):
@@ -92,9 +94,22 @@ class YourApplication(QMainWindow, Ui_MainWindow):
             if self.selected_video_path and self.selected_geojson_path:
                 self.readMatchButton.setEnabled(True)
                 
-    def get_video_length(self, video_path):
-        ## Function to get the video length..
-        pass
+    def get_video_length(self,video_path):
+            ## Function to get the video length..
+            clip=VideoFileClip(video_path)
+            duration=clip.duration
+            clip.close()
+            return duration
+    
+    def create_map(self, geojson_file, basemap='OpenStreetMap', zoom_start=18, line_color='black'):  
+        # Function to create map using the geojason file inputted
+        gdf = gpd.read_file(geojson_file)
+        m = folium.Map(location=[gdf['geometry'].centroid.y.mean(), gdf['geometry'].centroid.x.mean()], zoom_start=zoom_start, tiles=basemap)
+
+        # Add GeoJSON data to the map with custom line color
+        folium.GeoJson(gdf, style_function=lambda x: {'color': line_color}).add_to(m)
+
+        return m 
                 
     def create_details_table(self):
         # Create main layout
