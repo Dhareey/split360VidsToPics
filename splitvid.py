@@ -70,6 +70,10 @@ class YourApplication(QMainWindow, Ui_MainWindow):
             total_length = gdf.geometry.length.sum()
 
             return total_length
+        
+    def match_video_names_to_geojson(self, vidname):
+        pass
+        
 
         
         
