@@ -36,7 +36,7 @@ class YourApplication(QMainWindow, Ui_MainWindow):
         self.splitFilesButton.setEnabled(False)
         self.readGeojsonButton.clicked.connect(self.select_folder)
         self.readVidsButton.clicked.connect(self.select_folder_2)
-        self.readMatchButton.clicked.connect(self.create_details_table)
+        self.readMatchButton.clicked.connect(self.read_match_files)
         
     
     def read_match_files(self):
@@ -44,11 +44,11 @@ class YourApplication(QMainWindow, Ui_MainWindow):
         ### Loop through the geojson folder location and create_details_tables based on it
         ###Populate the scrollArea
         if self.selected_geojson_path and self.selected_video_path:
-            for filename in os.listdir(self.selected_geojson_path):
+            for serialnumber, filename in enumerate(os.listdir(self.selected_geojson_path)):
                 if filename.endswith('.geojson'):
                     file_path = os.path.join(self.selected_geojson_path, filename)
                     length= self.get_length_in_meters(file_path)
-                    print(length)
+                    self.create_details_table(str(serialnumber+1), str(file_path), str(length.round(2)))
         else:
             self.show_message_box('Unable to Process data', "Make sure the geojson folder path and the video folder path are selected first")
         
@@ -95,13 +95,13 @@ class YourApplication(QMainWindow, Ui_MainWindow):
         ## Function to get the video length... TAIWOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
         pass
                 
-    def create_details_table(self):
+    def create_details_table(self, sn, filepath, length):
         # Create main layout
         main_layout = QHBoxLayout()
 
         # Create Col_1 with numbers
         col_1_layout = QVBoxLayout()
-        label_col_1 = QLabel("1")
+        label_col_1 = QLabel(str(sn))
         label_col_1.setFixedWidth(100)
         col_1_layout.addWidget(label_col_1)
         # Add your numbers widgets here
@@ -111,7 +111,7 @@ class YourApplication(QMainWindow, Ui_MainWindow):
         col_2_layout = QVBoxLayout()
         # Row 1
         row_1_layout = QVBoxLayout()
-        row_1_layout.addWidget(QLabel("Geojson Filename: \t path_to_file"))
+        row_1_layout.addWidget(QLabel(f"Geojson Filename: \t {filepath}"))
         col_2_layout.addLayout(row_1_layout)
         # Row 2
         row_2_layout = QHBoxLayout()
@@ -124,7 +124,7 @@ class YourApplication(QMainWindow, Ui_MainWindow):
         col_2_layout.addLayout(row_3_layout)
         # Row 4
         row_4_layout = QHBoxLayout()
-        row_4_layout.addWidget(QLabel("vvcol_1"))
+        row_4_layout.addWidget(QLabel(f"{length}m"))
         row_4_layout.addWidget(QLabel("vvcol_2"))
         row_4_layout.addWidget(QLabel("vvcol_3"))
         col_2_layout.addLayout(row_4_layout)
