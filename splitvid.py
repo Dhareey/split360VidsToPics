@@ -40,6 +40,7 @@ class YourApplication(QMainWindow, Ui_MainWindow):
         self.readGeojsonButton.clicked.connect(self.select_folder)
         self.readVidsButton.clicked.connect(self.select_folder_2)
         self.readMatchButton.clicked.connect(self.read_match_files)
+        self.calcGeomButton.clicked.connect(self.calculate_geometry)
         
     
     def read_match_files(self):
@@ -51,7 +52,14 @@ class YourApplication(QMainWindow, Ui_MainWindow):
                 if filename.endswith('.geojson'):
                     file_path = os.path.join(self.selected_geojson_path, filename)
                     length= self.get_length_in_meters(file_path)
-                    self.create_details_table(str(serialnumber+1), str(file_path), str(length.round(2)))
+                    # Match the video names
+                    matched_vid_path = self.match_video_names_to_geojson(filename)
+                    if matched_vid_path == "No Match Found":
+                        vid_duration = "Invalid Video Length"
+                    else:
+                        vid_duration = self.get_video_length(matched_vid_path)
+                    self.create_details_table(str(serialnumber+1), str(file_path), str(length.round(2)), matched_vid_path, vid_duration)
+                    self.calcGeomButton.setEnabled(True)
         else:
             self.show_message_box('Unable to Process data', "Make sure the geojson folder path and the video folder path are selected first")
         
@@ -72,7 +80,19 @@ class YourApplication(QMainWindow, Ui_MainWindow):
             return total_length
         
     def match_video_names_to_geojson(self, vidname):
-        pass
+        if self.selected_video_path:
+            cleaned_vidname = vidname.replace(".geojson", "").lower()
+            ## Check for the video name in video
+            for vidname in os.listdir(self.selected_video_path):
+                vid_path = os.path.join(self.selected_video_path, vidname)
+                vname = vidname.replace('.mp4', "")
+                cleaned_vname = vname.split("_")[0].replace(" ", "").lower()
+                if cleaned_vidname == cleaned_vname:
+                    return vid_path
+            return "No Match Found"
+                
+        else:
+            self.show_message_box('Video path not selected', "Can't find video paths....")
         
 
         
@@ -115,28 +135,30 @@ class YourApplication(QMainWindow, Ui_MainWindow):
 
         return m 
                 
-    def create_details_table(self, sn, filepath, length):
+    def create_details_table(self, sn, filepath, length, vid_path, vid_length):
         # Create main layout
         main_layout = QHBoxLayout()
-
+        main_layout.setSpacing(0)
         # Create Col_1 with numbers
         col_1_layout = QVBoxLayout()
+        col_1_layout.setSpacing(0)
         label_col_1 = QLabel(str(sn))
-        label_col_1.setFixedWidth(100)
+        label_col_1.setFixedWidth(30)
         col_1_layout.addWidget(label_col_1)
         # Add your numbers widgets here
         main_layout.addLayout(col_1_layout)
 
         # Create Col_2 with four rows
         col_2_layout = QVBoxLayout()
+        col_2_layout.setSpacing(0)
         # Row 1
         row_1_layout = QVBoxLayout()
-        row_1_layout.addWidget(QLabel(f"Geojson Filename: \t {filepath}"))
+        row_1_layout.addWidget(QLabel(f"Vid Path: {vid_path}"))
         col_2_layout.addLayout(row_1_layout)
         # Row 2
         row_2_layout = QHBoxLayout()
-        row_2_layout.addWidget(QLabel("Vid Path: path_to_file"))
-        row_2_layout.addWidget(QLabel("Vid Length: 30:50"))
+        row_2_layout.addWidget(QLabel(f"Geojson Filename: {filepath}"))
+        row_2_layout.addWidget(QLabel(f"Vid Length: {vid_length}"))
         col_2_layout.addLayout(row_2_layout)
         # Row 3
         row_3_layout = QVBoxLayout()
@@ -153,6 +175,7 @@ class YourApplication(QMainWindow, Ui_MainWindow):
 
         # Create Col_3 for map
         col_3_layout = QVBoxLayout()
+        col_3_layout.setSpacing(0)
         col_3_layout.addWidget(QLabel("Col_3: Map Display"))
         # Add your map widget here
         main_layout.addLayout(col_3_layout)
@@ -161,10 +184,14 @@ class YourApplication(QMainWindow, Ui_MainWindow):
         main_widget = QWidget()
         main_widget.setLayout(main_layout)
         
-        main_widget.setStyleSheet("border: 1px solid rgb(0, 85, 255)")
+        main_widget.setStyleSheet("border: 0.1px solid rgb(0, 0, 0)")
         scroll_area_width = self.scrollArea.width()
         
         main_widget.setFixedSize(scroll_area_width-20, 250)  # Set your desired width and height
+        if int(sn) % 2 == 0:
+            pass
+        else:            
+            main_widget.setStyleSheet("background-color: rgb(219, 243, 255);\n border: 0.1px solid rgb(0,0,0);")
 
         # Set the alignment of scrollLayout to top
         self.scrollLayout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
