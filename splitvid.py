@@ -24,11 +24,12 @@ class YourApplication(QMainWindow, Ui_MainWindow):
         ## Setup the button clicks\
         self.selected_geojson_path = None
         self.selected_video_path = None
+        self.points_in_line = {}
         self.init_ui()
         self.scrollLayout = QVBoxLayout()  # Create a QVBoxLayout to hold all the widgets
         self.scrollAreaWidgetContents.setLayout(self.scrollLayout)  # Set the QVBoxLayout as the layout for the scroll area
-
-       
+        
+ 
         
         
         
@@ -95,7 +96,22 @@ class YourApplication(QMainWindow, Ui_MainWindow):
             self.show_message_box('Video path not selected', "Can't find video paths....")
         
 
-        
+    
+    def calculate_geometry(self):
+        division_length = self.lineEdit.text()
+        if division_length:
+            try:
+                division_length = float(division_length)
+            except:
+                self.show_message_box("Invalid division length", "Kindly enter a valid number...")
+                return None
+            ### Iterate through the scrollArea
+            ## For each item, get the video, geojson, length.
+            ## Verify that the none is empty
+            ## Divide the geojson into points based on the division length and get the point coordinates
+            
+        else:
+            self.show_message_box("Division length is empty", "Kindly enter Division length in meters")
         
     
     ## Def functions
