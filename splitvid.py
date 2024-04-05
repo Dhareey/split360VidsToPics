@@ -15,6 +15,7 @@ import geopandas as gpd
 from moviepy.editor import VideoFileClip
 import geopandas as gpd
 import folium
+from shapely.geometry import LineString
        
             
 class YourApplication(QMainWindow, Ui_MainWindow):
@@ -25,6 +26,7 @@ class YourApplication(QMainWindow, Ui_MainWindow):
         self.selected_geojson_path = None
         self.selected_video_path = None
         self.points_in_line = {}
+        self.shell={}
         self.init_ui()
         self.scrollLayout = QVBoxLayout()  # Create a QVBoxLayout to hold all the widgets
         self.scrollAreaWidgetContents.setLayout(self.scrollLayout)  # Set the QVBoxLayout as the layout for the scroll area
@@ -96,24 +98,100 @@ class YourApplication(QMainWindow, Ui_MainWindow):
             self.show_message_box('Video path not selected', "Can't find video paths....")
         
 
-    
     def calculate_geometry(self):
         division_length = self.lineEdit.text()
         if division_length:
             try:
                 division_length = float(division_length)
-            except:
+            except ValueError:
                 self.show_message_box("Invalid division length", "Kindly enter a valid number...")
                 return None
-            ### Iterate through the scrollArea
-            ## For each item, get the video, geojson, length.
-            ## Verify that the none is empty
-            ## Divide the geojson into points based on the division length and get the point coordinates
             
+            # Iterate through each serial number in self.shell
+            for sn, geojson_file in self.shell.items():
+                # Convert coordinates to UTM projection
+                gdf_utm = self.convert_coordinates(geojson_file)
+                
+                # Extract and join coordinates to form a LineString
+                line = self.extract_and_join_coordinates(gdf_utm)
+                # Divide LineString into points based on the division length
+                divided_points, total_divisions = self.divide_linestring_by_interval(line, division_length)
+                # Save the divided points into self.points_in_line dictionary
+                self.points_in_line[sn] = divided_points
+                self.create_details_table(str(total_divisions.round(2)))
+                self.splitFilesButton.setEnabled(True)
+                
         else:
             self.show_message_box("Division length is empty", "Kindly enter Division length in meters")
+            
+    def convert_coordinates(self, geojson_file):
+        target_proj_params = {
+            'proj': 'utm',
+            'zone': 31,
+            'south': True,
+            'ellps': 'WGS84',
+            'datum': 'WGS84',
+            'units': 'm'
+        }
+        gdf = gpd.read_file(geojson_file)
+        gdf_utm = gdf.to_crs(target_proj_params)
+        return gdf_utm
+
+    def extract_and_join_coordinates(self, gdf_utm):
+        if len(gdf_utm) > 1:  # Check if there are multiple features
+            features = gdf_utm['geometry']
+        else:
+            features = [gdf_utm.geometry.iloc[0]]  # If not, assume it's a single feature
+
+        # Extract coordinates from each feature
+        coordinates = []
+        for geometry in features:
+            if geometry.type == 'LineString':
+                coordinates.extend(geometry.coords)
+            elif geometry.type == 'MultiLineString':
+                for line_string in geometry:
+                    coordinates.extend(line_string.coords)
+
+        # Remove Z values and create LineString object
+        coordinates_2d = [(coord[0], coord[1]) for coord in coordinates]
+        line = LineString(coordinates_2d)
+
+        return line
+
+    def divide_linestring_by_interval(self, line, division_length):
+
+        # Calculate total length of the LineString
+        total_length = line.length
+
+        # Initialize list to store coordinates of divided points
+        divided_points = []
+
+        # Initialize distance along the LineString
+        distance = 0
+
+        # Initialize counter for total divisions
+        total_divisions = 0
+
+        # Iterate over the LineString and extract coordinates at specified intervals
+        while distance <= total_length:
+            # Interpolate point at current distance
+            point = line.interpolate(distance)
+
+            # Extract coordinates
+            coordinates = point.coords[0]  # Extract coordinates as (x, y) tuple
+
+            # Append coordinates to the list
+            divided_points.append(coordinates)
+
+            # Increment distance by the interval length
+            distance += division_length
+
+            # Increment total divisions counter
+            total_divisions += 1
+
+        return divided_points, total_divisions
         
-    
+
     ## Def functions
     def select_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Directory")
@@ -151,7 +229,7 @@ class YourApplication(QMainWindow, Ui_MainWindow):
 
         return m 
                 
-    def create_details_table(self, sn, filepath, length, vid_path, vid_length):
+    def create_details_table(self, sn, filepath, length, vid_path, vid_length, total_divisions):
         # Create main layout
         main_layout = QHBoxLayout()
         main_layout.setSpacing(0)
@@ -183,7 +261,7 @@ class YourApplication(QMainWindow, Ui_MainWindow):
         # Row 4
         row_4_layout = QHBoxLayout()
         row_4_layout.addWidget(QLabel(f"{length}m"))
-        row_4_layout.addWidget(QLabel("vvcol_2"))
+        row_4_layout.addWidget(QLabel(f"{total_divisions}"))
         row_4_layout.addWidget(QLabel("vvcol_3"))
         col_2_layout.addLayout(row_4_layout)
 
@@ -214,18 +292,9 @@ class YourApplication(QMainWindow, Ui_MainWindow):
         
         # Set the main widget as the widget for the scroll area
         self.scrollLayout.addWidget(main_widget)
-
-    def show_message_box(self, title, message):
-        msg_box = QMessageBox()
-        msg_box.setWindowTitle(title)
-        msg_box.setText(message)
-        msg_box.exec_()
-        
-def main():
-    app = QApplication(sys.argv)
-    window = YourApplication()
-    window.show()
-    sys.exit(app.exec_())
-
-if __name__ == '__main__':
-    main()
+        self.shell[sn]={
+            "filepath":filepath,
+            "length":length,
+            "vid_path":vid_path,
+            "vid_length":vid_length
+        }
